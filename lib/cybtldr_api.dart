@@ -1,7 +1,9 @@
+// ignore_for_file: constant_identifier_names, non_constant_identifier_names
+
 import 'cybtldr_parse.dart';
 import 'cybtldr_utils.dart';
 import 'cybtldr_command.dart';
-import 'cybtldr_uart_comms.dart';
+import 'cybtldr_ble_comms.dart';
 import 'dart:typed_data';
 
 /* The highest number of memory arrays for any device. This includes flash and EEPROM arrays */
@@ -23,11 +25,16 @@ int min_int(int a, int b) {
 
 Future<(int, Uint8List)> CyBtldr_TransferData(
     Uint8List inBuf, int inSize, int outSize) async {
-  int err = g_comm.WriteData(inBuf, inSize);
+  try {
+    while (!await g_comm.canSend()) {
+      await Future.delayed(const Duration(milliseconds: 1));
+    }
+  } catch (e) {}
+  int err = await g_comm.WriteData(inBuf, inSize);
   Uint8List outbuf = Uint8List(MAX_BUFFER_SIZE);
   if (CYRET_SUCCESS == err) {
     while (!g_comm.hasData()) {
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 1));
     }
     (err, outbuf) = g_comm.ReadData(outSize);
   }
@@ -101,7 +108,7 @@ Future<int> CyBtldr_StartBootloadOperation(
     g_validRows[i] = NO_FLASH_ARRAY_DATA;
   }
 
-  err = g_comm.OpenConnection();
+  err = await g_comm.OpenConnection();
   if (CYRET_SUCCESS != err) {
     err |= CYRET_ERR_COMM_MASK;
   }
@@ -154,7 +161,7 @@ Future<int> CyBtldr_StartBootloadOperation_v1(
     g_validRows[i] = NO_FLASH_ARRAY_DATA;
   }
 
-  err = g_comm.OpenConnection();
+  err = await g_comm.OpenConnection();
   if (CYRET_SUCCESS != err) {
     err |= CYRET_ERR_COMM_MASK;
   }
@@ -243,13 +250,13 @@ Future<int> CyBtldr_SetApplicationStatus(int appID) async {
   return err;
 }
 
-int CyBtldr_EndBootloadOperation() {
+Future<int> CyBtldr_EndBootloadOperation() async {
   int inSize;
   int err = CYRET_SUCCESS;
   Uint8List inBuf = Uint8List(MAX_COMMAND_SIZE);
   (err, inSize, inBuf, _) = CyBtldr_CreateExitBootLoaderCmd();
   if (CYRET_SUCCESS == err) {
-    err = g_comm.WriteData(inBuf, inSize);
+    err = await g_comm.WriteData(inBuf, inSize);
 
     if (CYRET_SUCCESS == err) {
       err = g_comm.CloseConnection();

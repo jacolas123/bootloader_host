@@ -1,4 +1,4 @@
-import 'dart:collection';
+/* import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:libserialport/libserialport.dart';
@@ -81,3 +81,4 @@ class CyBtldr_CommunicationsData {
 /* Value used to specify the maximum number of bytes that can be transfered at a time */
   int MaxTransferSize = 32;
 }
+ */

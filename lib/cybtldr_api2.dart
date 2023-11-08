@@ -1,5 +1,8 @@
+// ignore_for_file: non_constant_identifier_names, camel_case_types, constant_identifier_names
+
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path/path.dart' as path;
 import '../cybtldr_command.dart';
 
@@ -169,10 +172,10 @@ Future<int> RunAction_v0(CyBtldr_Action action, int lineLen, String line,
         CyBtldr_Action.VERIFY == action) {
       err = await CyBtldr_VerifyApplication();
     }
-    CyBtldr_EndBootloadOperation();
+    await CyBtldr_EndBootloadOperation();
   } else if (CYRET_ERR_COMM_MASK != (CYRET_ERR_COMM_MASK & err) &&
       bootloaderEntered == 1) {
-    CyBtldr_EndBootloadOperation();
+    await CyBtldr_EndBootloadOperation();
   }
   return err;
 }
@@ -242,23 +245,23 @@ Future<int> RunAction_v1(
   if (err == CYRET_SUCCESS &&
       (CyBtldr_Action.PROGRAM == action || CyBtldr_Action.VERIFY == action)) {
     err = await CyBtldr_VerifyApplication_v1(appId);
-    CyBtldr_EndBootloadOperation();
+    await CyBtldr_EndBootloadOperation();
   } else if (CYRET_ERR_COMM_MASK != (CYRET_ERR_COMM_MASK & err) &&
       bootloaderEntered == 1) {
-    CyBtldr_EndBootloadOperation();
+    await CyBtldr_EndBootloadOperation();
   }
   return err;
 }
 
-Future<int> CyBtldr_RunAction(
-    CyBtldr_Action action, String securityKey, int appId, File file) async {
+Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
+    int appId, File file, BluetoothDevice device) async {
   g_abort = 0;
   int lineLen;
   String line;
 
   int err;
   int fileVersion = 0;
-
+  g_comm.SetDevice(device);
   err = await CyBtldr_OpenDataFile(file);
   if (CYRET_SUCCESS == err) {
     (err, line, lineLen) = CyBtldr_ReadLine(0);
@@ -291,17 +294,22 @@ Future<int> CyBtldr_RunAction(
   return err;
 }
 
-Future<int> CyBtldr_Program(File file, String securityKey, int appId) async {
+Future<int> CyBtldr_Program(
+    File file, String securityKey, int appId, BluetoothDevice device) async {
   return await CyBtldr_RunAction(
-      CyBtldr_Action.PROGRAM, securityKey, appId, file);
+      CyBtldr_Action.PROGRAM, securityKey, appId, file, device);
 }
 
-Future<int> CyBtldr_Erase(File file, String securityKey) async {
-  return await CyBtldr_RunAction(CyBtldr_Action.ERASE, securityKey, 0, file);
+Future<int> CyBtldr_Erase(
+    File file, String securityKey, BluetoothDevice device) async {
+  return await CyBtldr_RunAction(
+      CyBtldr_Action.ERASE, securityKey, 0, file, device);
 }
 
-Future<int> CyBtldr_Verify(File file, String securityKey) async {
-  return await CyBtldr_RunAction(CyBtldr_Action.VERIFY, securityKey, 0, file);
+Future<int> CyBtldr_Verify(
+    File file, String securityKey, BluetoothDevice device) async {
+  return await CyBtldr_RunAction(
+      CyBtldr_Action.VERIFY, securityKey, 0, file, device);
 }
 
 int CyBtldr_Abort() {
