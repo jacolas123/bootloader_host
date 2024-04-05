@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bootloader_host/cybtldr_api.dart';
 import 'package:bootloader_host/cybtldr_api2.dart';
 import 'package:bootloader_host/cybtldr_ble_comms.dart';
 import 'package:file_picker/file_picker.dart';
@@ -347,7 +348,7 @@ class _FridgeConnectPageState extends State<FridgeConnectPage> {
                                                             r.device.remoteId]!
                                                         .value = false;
                                                   });
-
+                                                  //g_comm.OpenConnection();
                                                   return DeviceScreen(
                                                       device: r.device);
                                                 },
@@ -417,7 +418,9 @@ class DeviceScreen extends StatelessWidget {
                         ValueNotifier(true);
                     isConnectingOrDisconnecting[device.remoteId]!.value = true;
                     try {
-                      await device.connect(timeout: Duration(seconds: 35));
+                      await device.connect(
+                          timeout: const Duration(seconds: 35));
+                      g_comm.SetDevice(device);
                       final snackBar = snackBarGood("Connect: Success");
                       snackBarKeyC.currentState?.removeCurrentSnackBar();
                       snackBarKeyC.currentState?.showSnackBar(snackBar);
@@ -447,8 +450,8 @@ class DeviceScreen extends StatelessWidget {
                     if (isConnectingOrDisconnecting[device.remoteId]!.value ==
                         true) {
                       // Show spinner when connecting or disconnecting
-                      return Padding(
-                        padding: const EdgeInsets.all(14.0),
+                      return const Padding(
+                        padding: EdgeInsets.all(14.0),
                         child: AspectRatio(
                           aspectRatio: 1.0,
                           child: CircularProgressIndicator(

@@ -109,6 +109,7 @@ Future<int> CyBtldr_StartBootloadOperation(
   }
 
   err = await g_comm.OpenConnection();
+  await Future.delayed(const Duration(seconds: 30));
   if (CYRET_SUCCESS != err) {
     err |= CYRET_ERR_COMM_MASK;
   }

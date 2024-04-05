@@ -31,21 +31,23 @@ class CyBtldr_CommunicationsData {
               .singleWhere((element) => element.uuid == UartServiceGuid);
           var rxChar = service.characteristics
               .singleWhere((element) => element.uuid == RxFiFoCharGuid);
+
           await rxChar.setNotifyValue(rxChar.isNotifying == false);
 
           rxChar.onValueReceived.listen((value) {
+            inData = Uint8List(MAX_BUFFER_SIZE);
             inData = Uint8List.fromList(value);
             receivedData = true;
           });
           var modemOutChar = service.characteristics
-              .singleWhere((element) => element.uuid == RxFiFoCharGuid);
+              .singleWhere((element) => element.uuid == ModemOutGuid);
           await modemOutChar.setNotifyValue(true);
           modemOutChar.onValueReceived.listen((value) {
             canSendData = value.first == 1;
           });
 
           var modemInChar = service.characteristics
-              .singleWhere((element) => element.uuid == RxFiFoCharGuid);
+              .singleWhere((element) => element.uuid == ModemInGuid);
           if (modemInChar.properties.write) {
             await modemInChar.write([1]);
           }
@@ -86,6 +88,7 @@ class CyBtldr_CommunicationsData {
   Future<int> WriteData(Uint8List data, int length) async {
     try {
       Uint8List toSend = Uint8List.fromList(data.getRange(0, length).toList());
+      receivedData = false;
       await txChar.write(List.from(toSend));
       //port.write(toSend, timeout: 0);
     } catch (e) {
@@ -109,7 +112,7 @@ class CyBtldr_CommunicationsData {
   }
 
 /* Value used to specify the maximum number of bytes that can be transfered at a time */
-  int MaxTransferSize = 32;
+  int MaxTransferSize = 23;
 
   Guid UartServiceGuid = Guid("569a1101-b87f-490c-92cb-11ba5ea5167c");
   Guid RxFiFoCharGuid = Guid("569a2000-b87f-490c-92cb-11ba5ea5167c");
