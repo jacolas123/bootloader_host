@@ -339,7 +339,7 @@ class _FridgeConnectPageState extends State<FridgeConnectPage> {
                                                     snackBarKeyC.currentState
                                                         ?.showSnackBar(
                                                             snackBar);
-                                                  }).then((v) {
+                                                  }).then((v) async {
                                                     isConnectingOrDisconnecting[
                                                             r.device
                                                                 .remoteId] ??=
@@ -347,6 +347,8 @@ class _FridgeConnectPageState extends State<FridgeConnectPage> {
                                                     isConnectingOrDisconnecting[
                                                             r.device.remoteId]!
                                                         .value = false;
+                                                    await CyBtldr_ConnectToDevice(
+                                                        r.device);
                                                   });
                                                   //g_comm.OpenConnection();
                                                   return DeviceScreen(
@@ -488,7 +490,7 @@ class DeviceScreen extends StatelessWidget {
                 File file = File(pathToFile);
                 final extension = path.extension(pathToFile);
                 if (extension == ".cyacd" || extension == ".cyacd2") {
-                  int t = await CyBtldr_Program(file, "", 3, device);
+                  int t = await CyBtldr_Program(file, "", 3);
                   final snackBar = snackBarGood(t.toString());
                   snackBarKeyC.currentState?.removeCurrentSnackBar();
                   snackBarKeyC.currentState?.showSnackBar(snackBar);

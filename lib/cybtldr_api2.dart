@@ -253,15 +253,14 @@ Future<int> RunAction_v1(
   return err;
 }
 
-Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
-    int appId, File file, BluetoothDevice device) async {
+Future<int> CyBtldr_RunAction(
+    CyBtldr_Action action, String securityKey, int appId, File file) async {
   g_abort = 0;
   int lineLen;
   String line;
 
   int err;
   int fileVersion = 0;
-  g_comm.SetDevice(device);
   err = await CyBtldr_OpenDataFile(file);
   if (CYRET_SUCCESS == err) {
     (err, line, lineLen) = CyBtldr_ReadLine(0);
@@ -294,22 +293,24 @@ Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
   return err;
 }
 
-Future<int> CyBtldr_Program(
-    File file, String securityKey, int appId, BluetoothDevice device) async {
+Future<void> CyBtldr_ConnectToDevice(BluetoothDevice device) async {
+  g_comm.SetDevice(device);
+  await g_comm.OpenConnection();
+}
+
+Future<int> CyBtldr_Program(File file, String securityKey, int appId) async {
   return await CyBtldr_RunAction(
-      CyBtldr_Action.PROGRAM, securityKey, appId, file, device);
+      CyBtldr_Action.PROGRAM, securityKey, appId, file);
 }
 
 Future<int> CyBtldr_Erase(
     File file, String securityKey, BluetoothDevice device) async {
-  return await CyBtldr_RunAction(
-      CyBtldr_Action.ERASE, securityKey, 0, file, device);
+  return await CyBtldr_RunAction(CyBtldr_Action.ERASE, securityKey, 0, file);
 }
 
 Future<int> CyBtldr_Verify(
     File file, String securityKey, BluetoothDevice device) async {
-  return await CyBtldr_RunAction(
-      CyBtldr_Action.VERIFY, securityKey, 0, file, device);
+  return await CyBtldr_RunAction(CyBtldr_Action.VERIFY, securityKey, 0, file);
 }
 
 int CyBtldr_Abort() {
