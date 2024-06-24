@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:bootloader_host/ProgressProvider.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path/path.dart' as path;
 import '../cybtldr_command.dart';
@@ -94,7 +95,7 @@ Future<int> ProcessMetaRow_v1(int rowSize, String rowData) async {
 }
 
 Future<int> RunAction_v0(CyBtldr_Action action, int lineLen, String line,
-    int appId, Uint8List securityKey) async {
+    int appId, Uint8List securityKey, ProgressProvider provider) async {
   const int INVALID_APP = 0xFF;
   int siliconId = 0;
   int siliconRev = 0;
@@ -142,7 +143,7 @@ Future<int> RunAction_v0(CyBtldr_Action action, int lineLen, String line,
       err = CYRET_ABORT;
       break;
     }
-
+    provider.setCurrentProgress(lineIndex);
     (err, line, lineLen) = CyBtldr_ReadLine(lineIndex);
     lineIndex++;
     if (CYRET_SUCCESS == err) {
@@ -177,11 +178,12 @@ Future<int> RunAction_v0(CyBtldr_Action action, int lineLen, String line,
       bootloaderEntered == 1) {
     await CyBtldr_EndBootloadOperation();
   }
+  provider.hideProgress();
   return err;
 }
 
-Future<int> RunAction_v1(
-    CyBtldr_Action action, int lineLen, String line) async {
+Future<int> RunAction_v1(CyBtldr_Action action, int lineLen, String line,
+    ProgressProvider provider) async {
   int blVer = 0;
   int siliconId = 0;
   int siliconRev = 0;
@@ -226,6 +228,7 @@ Future<int> RunAction_v1(
       break;
     }
     String s = "";
+    provider.setCurrentProgress(lineIndex);
     (err, s, lineLen) = CyBtldr_ReadLine(lineIndex);
     if (CYRET_SUCCESS == err) {
       switch (s[0]) {
@@ -250,11 +253,17 @@ Future<int> RunAction_v1(
       bootloaderEntered == 1) {
     await CyBtldr_EndBootloadOperation();
   }
+  provider.hideProgress();
   return err;
 }
 
-Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
-    int appId, File file, BluetoothDevice device) async {
+Future<int> CyBtldr_RunAction(
+    CyBtldr_Action action,
+    String securityKey,
+    int appId,
+    File file,
+    BluetoothDevice device,
+    ProgressProvider provider) async {
   g_abort = 0;
   int lineLen;
   String line;
@@ -264,6 +273,7 @@ Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
   g_comm.SetDevice(device);
   err = await CyBtldr_OpenDataFile(file);
   if (CYRET_SUCCESS == err) {
+    provider.setTotalProgress(dataFileData.length);
     (err, line, lineLen) = CyBtldr_ReadLine(0);
     // The file version determine the format of the cyacd\cyacd2 file and the set of protocol commands used.
     if (CYRET_SUCCESS == err) {
@@ -276,10 +286,10 @@ Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
       switch (fileVersion) {
         case 0:
           err = await RunAction_v0(action, lineLen, line, appId,
-              Uint8List.fromList(securityKey.codeUnits));
+              Uint8List.fromList(securityKey.codeUnits), provider);
           break;
         case 1:
-          err = await RunAction_v1(action, lineLen, line);
+          err = await RunAction_v1(action, lineLen, line, provider);
           break;
         default:
           err = CYRET_ERR_FILE;
@@ -294,22 +304,22 @@ Future<int> CyBtldr_RunAction(CyBtldr_Action action, String securityKey,
   return err;
 }
 
-Future<int> CyBtldr_Program(
-    File file, String securityKey, int appId, BluetoothDevice device) async {
+Future<int> CyBtldr_Program(File file, String securityKey, int appId,
+    BluetoothDevice device, ProgressProvider provider) async {
   return await CyBtldr_RunAction(
-      CyBtldr_Action.PROGRAM, securityKey, appId, file, device);
+      CyBtldr_Action.PROGRAM, securityKey, appId, file, device, provider);
 }
 
-Future<int> CyBtldr_Erase(
-    File file, String securityKey, BluetoothDevice device) async {
+Future<int> CyBtldr_Erase(File file, String securityKey, BluetoothDevice device,
+    ProgressProvider provider) async {
   return await CyBtldr_RunAction(
-      CyBtldr_Action.ERASE, securityKey, 0, file, device);
+      CyBtldr_Action.ERASE, securityKey, 0, file, device, provider);
 }
 
-Future<int> CyBtldr_Verify(
-    File file, String securityKey, BluetoothDevice device) async {
+Future<int> CyBtldr_Verify(File file, String securityKey,
+    BluetoothDevice device, ProgressProvider provider) async {
   return await CyBtldr_RunAction(
-      CyBtldr_Action.VERIFY, securityKey, 0, file, device);
+      CyBtldr_Action.VERIFY, securityKey, 0, file, device, provider);
 }
 
 int CyBtldr_Abort() {

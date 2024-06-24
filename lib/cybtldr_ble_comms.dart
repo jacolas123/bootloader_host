@@ -76,15 +76,18 @@ class CyBtldr_CommunicationsData {
 
   (bool, int, Uint8List) ReadData(int size) {
     if (inDataCurrentPosition != size) {
-      return (false, 1, Uint8List(0));
-    } else {
-      Uint8List toReturn = inData;
-      receivedData = false;
-      if (inData.length >= size) {
-        return (true, CYRET_SUCCESS, toReturn.sublist(0, size));
+      if (inDataCurrentPosition % size != 0) {
+        return (false, 1, Uint8List(0));
       } else {
-        return (true, CYRET_SUCCESS, toReturn);
+        inDataCurrentPosition = size;
       }
+    }
+    Uint8List toReturn = inData;
+    receivedData = false;
+    if (inData.length >= size) {
+      return (true, CYRET_SUCCESS, toReturn.sublist(0, size));
+    } else {
+      return (true, CYRET_SUCCESS, toReturn);
     }
   }
 
