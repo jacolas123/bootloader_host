@@ -16,6 +16,8 @@ class CyBtldr_CommunicationsData {
   late BluetoothCharacteristic modemInChar;
   bool receivedData = false;
   bool canSendData = true;
+  bool written = false;
+  int inDataCurrentPosition = 0;
 
   void SetDevice(BluetoothDevice inDevice) {
     device = inDevice;
@@ -35,9 +37,10 @@ class CyBtldr_CommunicationsData {
           await rxChar.setNotifyValue(rxChar.isNotifying == false);
 
           rxChar.onValueReceived.listen((value) {
-            inData = Uint8List(MAX_BUFFER_SIZE);
-            inData = Uint8List.fromList(value);
-            receivedData = true;
+            for (int i in value) {
+              inData[inDataCurrentPosition] = i;
+              inDataCurrentPosition = inDataCurrentPosition + 1;
+            }
           });
           var modemOutChar = service.characteristics
               .singleWhere((element) => element.uuid == ModemOutGuid);
@@ -71,16 +74,16 @@ class CyBtldr_CommunicationsData {
     return CYRET_SUCCESS;
   }
 
-  (int, Uint8List) ReadData(int size) {
-    if (!receivedData) {
-      return (1, Uint8List(0));
+  (bool, int, Uint8List) ReadData(int size) {
+    if (inDataCurrentPosition != size) {
+      return (false, 1, Uint8List(0));
     } else {
       Uint8List toReturn = inData;
       receivedData = false;
       if (inData.length >= size) {
-        return (CYRET_SUCCESS, toReturn.sublist(0, size));
+        return (true, CYRET_SUCCESS, toReturn.sublist(0, size));
       } else {
-        return (CYRET_SUCCESS, toReturn);
+        return (true, CYRET_SUCCESS, toReturn);
       }
     }
   }
@@ -88,8 +91,10 @@ class CyBtldr_CommunicationsData {
   Future<int> WriteData(Uint8List data, int length) async {
     try {
       Uint8List toSend = Uint8List.fromList(data.getRange(0, length).toList());
-      receivedData = false;
-      await txChar.write(List.from(toSend));
+      inDataCurrentPosition = 0;
+      await txChar
+          .write(List.from(toSend))
+          .timeout(const Duration(seconds: 10));
       //port.write(toSend, timeout: 0);
     } catch (e) {
       return 1;
@@ -112,7 +117,7 @@ class CyBtldr_CommunicationsData {
   }
 
 /* Value used to specify the maximum number of bytes that can be transfered at a time */
-  int MaxTransferSize = 23;
+  int MaxTransferSize = 64;
 
   Guid UartServiceGuid = Guid("569a1101-b87f-490c-92cb-11ba5ea5167c");
   Guid RxFiFoCharGuid = Guid("569a2000-b87f-490c-92cb-11ba5ea5167c");

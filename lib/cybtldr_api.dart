@@ -25,18 +25,20 @@ int min_int(int a, int b) {
 
 Future<(int, Uint8List)> CyBtldr_TransferData(
     Uint8List inBuf, int inSize, int outSize) async {
-  try {
+  /*try {
     while (!await g_comm.canSend()) {
       await Future.delayed(const Duration(milliseconds: 1));
     }
-  } catch (e) {}
+  } catch (e) {}*/
   int err = await g_comm.WriteData(inBuf, inSize);
+  //await Future.delayed(const Duration(milliseconds: 50));
   Uint8List outbuf = Uint8List(MAX_BUFFER_SIZE);
   if (CYRET_SUCCESS == err) {
-    while (!g_comm.hasData()) {
+    bool hasAllData = false;
+    while (!hasAllData) {
+      (hasAllData, err, outbuf) = g_comm.ReadData(outSize);
       await Future.delayed(const Duration(milliseconds: 1));
     }
-    (err, outbuf) = g_comm.ReadData(outSize);
   }
 
   if (CYRET_SUCCESS != err) err |= CYRET_ERR_COMM_MASK;
@@ -109,7 +111,7 @@ Future<int> CyBtldr_StartBootloadOperation(
   }
 
   err = await g_comm.OpenConnection();
-  await Future.delayed(const Duration(seconds: 10));
+  await Future.delayed(const Duration(seconds: 1));
   if (CYRET_SUCCESS != err) {
     err |= CYRET_ERR_COMM_MASK;
   }
